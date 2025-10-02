@@ -1,38 +1,36 @@
 import streamlit as st
 from openai import OpenAI
-from elevenlabs import ElevenLabs
 import io
 from pathlib import Path
 
 # =======================
-# Load API keys
+# Load API key
 # =======================
-openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-tts_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # =======================
-# Define avatars (voice IDs + local images)
+# Define avatars (voices + local images)
 # =======================
 avatars = {
     "Finance Director": {
-        "voice_id": "pFZP5JQG7iQjIQuC4Bku",
+        "voice": "aria",   # weibliche Stimme
         "image": "Finance.png"
     },
     "HR Director": {
-        "voice_id": "EXAVITQu4vr4xnSDxMaL",
+        "voice": "alloy",  # neutrale Stimme
         "image": "HR.png"
     },
     "IT Director": {
-        "voice_id": "ErXwobaYiN019PkySvjV",
+        "voice": "verse",  # männliche Stimme
         "image": "IT.png"
     },
     "Marketing Director": {
-        "voice_id": "MF3mGyEYCl7XYWbV9V6O",
+        "voice": "sage",   # weibliche Stimme
         "image": "Marketing.png"
     }
 }
 
-st.title("💬 Avatar Discussion Demo")
+st.title("💬 Avatar Discussion Demo (OpenAI TTS)")
 
 # =======================
 # Moderator Input
@@ -59,29 +57,29 @@ if st.button("Start Discussion") and topic:
             col.subheader(role)
 
             # Generate GPT response (short and crisp)
-            response = openai_client.chat.completions.create(
+            response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {
                         "role": "system",
                         "content": (
                             f"You are {role}. Respond to the topic in a short, "
-                            "crisp, humorous, and realistic way. Limit your reply to 2–3 sentences."
+                            "crisp, humorous, and realistic way. Limit to 2–3 sentences."
                         )
                     },
                     {"role": "user", "content": f"Discuss the topic: {topic}"}
                 ]
             )
-
             reply = response.choices[0].message.content
             col.write(reply)
 
-            # Convert text to speech
-            audio_stream = tts_client.text_to_speech.convert(
-                voice_id=info["voice_id"],
-                model_id="eleven_multilingual_v2",
-                text=reply
+            # Convert text to speech with OpenAI
+            audio_response = client.audio.speech.create(
+                model="gpt-4o-mini-tts",
+                voice=info["voice"],
+                input=reply
             )
-            audio_bytes = b"".join([chunk for chunk in audio_stream if chunk])
-            col.audio(io.BytesIO(audio_bytes), format="audio/mp3")
 
+            # Audio zurückspielen
+            audio_bytes = audio_response.read()
+            col.audio(io.BytesIO(audio_bytes), format="audio/mp3")
