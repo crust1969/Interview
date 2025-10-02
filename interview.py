@@ -1,6 +1,6 @@
 import streamlit as st
 from openai import OpenAI
-from elevenlabs import ElevenLabs, VoiceSettings
+from elevenlabs import ElevenLabs, Voice, VoiceSettings
 from io import BytesIO
 
 # -----------------------------
@@ -13,10 +13,10 @@ elevenlabs_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 # Define avatars
 # -----------------------------
 avatars = {
-    "Finance Director": {"img": "Finance.png", "voice": "pNInz6obpgDQGcFmaJgB"},
-    "HR Director": {"img": "HR.png", "voice": "EXAVITQu4vr4xnSDxMaL"},
-    "IT Director": {"img": "IT.png", "voice": "nPczCjzI2devNBz1zQrb"},
-    "Marketing Director": {"img": "Marketing.png", "voice": "ODq5zmih8GrVes37Dizd"}
+    "Finance Director": {"img": "Finance.png", "voice_id": "pNInz6obpgDQGcFmaJgB"},
+    "HR Director": {"img": "HR.png", "voice_id": "EXAVITQu4vr4xnSDxMaL"},
+    "IT Director": {"img": "IT.png", "voice_id": "nPczCjzI2devNBz1zQrb"},
+    "Marketing Director": {"img": "Marketing.png", "voice_id": "ODq5zmih8GrVes37Dizd"}
 }
 
 # -----------------------------
@@ -57,9 +57,10 @@ if st.button("Start Discussion") and topic:
             # -----------------------------
             # Convert GPT reply to TTS via ElevenLabs
             # -----------------------------
+            voice = Voice.from_api_id(info["voice_id"])
             audio = elevenlabs_client.text_to_speech.convert(
                 text=reply,
-                voice=info["voice"],
+                voice=voice,
                 model="eleven_turbo_v2_5",
                 voice_settings=VoiceSettings(
                     stability=0.0,
