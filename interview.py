@@ -55,9 +55,13 @@ if st.button("Start Discussion") and topic:
                 st.write(reply)
 
             # -----------------------------
-            # Convert GPT reply to TTS via ElevenLabs
+            # Retrieve ElevenLabs voice by ID
             # -----------------------------
-            voice = Voice.from_api_id(info["voice_id"])
+            voice = Voice.retrieve(info["voice_id"], client=elevenlabs_client)
+
+            # -----------------------------
+            # Convert GPT reply to TTS
+            # -----------------------------
             audio = elevenlabs_client.text_to_speech.convert(
                 text=reply,
                 voice=voice,
