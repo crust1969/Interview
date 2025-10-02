@@ -3,10 +3,15 @@ from openai import OpenAI
 from elevenlabs import ElevenLabs, VoiceSettings
 from io import BytesIO
 
-# Initialize ElevenLabs client
+# -----------------------------
+# Initialize API clients
+# -----------------------------
+openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 elevenlabs_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
-# Define avatars with image + unique ElevenLabs voice
+# -----------------------------
+# Define avatars
+# -----------------------------
 avatars = {
     "Finance Director": {"img": "Finance.png", "voice": "pNInz6obpgDQGcFmaJgB"},
     "HR Director": {"img": "HR.png", "voice": "EXAVITQu4vr4xnSDxMaL"},
@@ -14,18 +19,22 @@ avatars = {
     "Marketing Director": {"img": "Marketing.png", "voice": "ODq5zmih8GrVes37Dizd"}
 }
 
+# -----------------------------
+# Streamlit UI
+# -----------------------------
 st.title("💬 Avatar Discussion Demo (GPT + ElevenLabs TTS)")
 
-# Moderator input
 topic = st.text_input("Enter a discussion topic:")
 
 if st.button("Start Discussion") and topic:
     st.write(f"**Moderator:** Today’s topic is: {topic}")
 
-    # Loop through avatars for a single-turn discussion
+    # Loop through avatars
     for role, info in avatars.items():
         try:
+            # -----------------------------
             # Generate GPT reply
+            # -----------------------------
             response = openai_client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
@@ -35,7 +44,9 @@ if st.button("Start Discussion") and topic:
             )
             reply = response.choices[0].message.content
 
+            # -----------------------------
             # Display avatar + text
+            # -----------------------------
             cols = st.columns([1, 3])
             with cols[0]:
                 st.image(info["img"], width=120)
@@ -43,11 +54,13 @@ if st.button("Start Discussion") and topic:
                 st.subheader(role)
                 st.write(reply)
 
-            # Convert GPT reply to speech using ElevenLabs
+            # -----------------------------
+            # Convert GPT reply to TTS via ElevenLabs
+            # -----------------------------
             audio = elevenlabs_client.text_to_speech.convert(
                 text=reply,
                 voice=info["voice"],
-                model="eleven_turbo_v2_5",  # Use the turbo model for low latency
+                model="eleven_turbo_v2_5",
                 voice_settings=VoiceSettings(
                     stability=0.0,
                     similarity_boost=1.0,
