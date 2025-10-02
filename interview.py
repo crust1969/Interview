@@ -7,10 +7,10 @@ openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # Define avatars with image + unique voice
 avatars = {
-    "Finance Director": {"img": "avatars/finance.png", "voice": "alloy"},
-    "HR Director": {"img": "avatars/hr.png", "voice": "verse"},
-    "IT Director": {"img": "avatars/it.png", "voice": "aria"},
-    "Marketing Director": {"img": "avatars/marketing.png", "voice": "bella"}
+    "Finance Director": {"img": "finance.png", "voice": "alloy"},
+    "HR Director": {"img": "hr.png", "voice": "verse"},
+    "IT Director": {"img": "it.png", "voice": "aria"},
+    "Marketing Director": {"img": "marketing.png", "voice": "bella"}
 }
 
 st.title("💬 Avatar Discussion Demo (Static Avatars + Different Voices)")
