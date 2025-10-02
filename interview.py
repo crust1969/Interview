@@ -11,12 +11,12 @@ openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 tts_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
 # =======================
-# Define avatars (with ElevenLabs voice IDs and local images)
+# Define avatars (voice IDs + local images)
 # =======================
 avatars = {
     "Finance Director": {
         "voice_id": "pFZP5JQG7iQjIQuC4Bku",
-        "image": "Finance.png"  # stored in main directory
+        "image": "Finance.png"
     },
     "HR Director": {
         "voice_id": "EXAVITQu4vr4xnSDxMaL",
@@ -43,7 +43,7 @@ if st.button("Start Discussion") and topic:
     st.write(f"**Moderator:** Today’s topic is: {topic}")
 
     # Display avatars in grid
-    cols_per_row = 2  # Number of avatars per row
+    cols_per_row = 2
     avatar_items = list(avatars.items())
 
     for i in range(0, len(avatar_items), cols_per_row):
@@ -58,14 +58,21 @@ if st.button("Start Discussion") and topic:
 
             col.subheader(role)
 
-            # Generate GPT response
+            # Generate GPT response (short and crisp)
             response = openai_client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": f"You are {role}. Respond in a humorous but realistic way."},
+                    {
+                        "role": "system",
+                        "content": (
+                            f"You are {role}. Respond to the topic in a short, "
+                            "crisp, humorous, and realistic way. Limit your reply to 2–3 sentences."
+                        )
+                    },
                     {"role": "user", "content": f"Discuss the topic: {topic}"}
                 ]
             )
+
             reply = response.choices[0].message.content
             col.write(reply)
 
@@ -77,3 +84,4 @@ if st.button("Start Discussion") and topic:
             )
             audio_bytes = b"".join([chunk for chunk in audio_stream if chunk])
             col.audio(io.BytesIO(audio_bytes), format="audio/mp3")
+
