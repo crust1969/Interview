@@ -13,7 +13,7 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 # =======================
 avatars = {
     "Finance Director": {
-        "voice": "aria",   # weibliche Stimme
+        "voice": "fable",   # weibliche Stimme
         "image": "Finance.png"
     },
     "HR Director": {
