@@ -1,6 +1,6 @@
 import streamlit as st
 from openai import OpenAI
-import io
+from io import BytesIO
 
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -23,32 +23,45 @@ if st.button("Start Discussion") and topic:
 
     # Loop through avatars for a single-turn discussion
     for role, info in avatars.items():
-        # Generate GPT reply
-        response = openai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": f"You are {role}. Respond in a humorous but realistic way."},
-                {"role": "user", "content": f"Discuss the topic: {topic}"}
-            ]
-        )
-        reply = response.choices[0].message.content
-
-        # Display avatar + text side by side
-        cols = st.columns([1, 3])
-        with cols[0]:
-            st.image(info["img"], width=120)
-        with cols[1]:
-            st.subheader(role)
-            st.write(reply)
-
-        # Convert GPT reply to TTS with unique voice
         try:
-            tts = openai_client.audio.speech.create(
-                model="gpt-4o-mini-tts",
-                voice=info["voice"],
-                input=reply
+            # Generate GPT reply
+            response = openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": f"You are {role}. Respond in a humorous but realistic way."},
+                    {"role": "user", "content": f"Discuss the topic: {topic}"}
+                ]
             )
-            audio_bytes = tts.read()
-            st.audio(io.BytesIO(audio_bytes), format="audio/mp3")
+            reply = response.choices[0].message.content
+
+            # Display avatar + text side by side
+            cols = st.columns([1, 3])
+            with cols[0]:
+                st.image(info["img"], width=120)
+            with cols[1]:
+                st.subheader(role)
+                st.write(reply)
+
+            # Convert GPT reply to TTS with unique voice
+            try:
+                tts = openai_client.audio.speech.create(
+                    model="gpt-4o-mini-tts",
+                    voice=info["voice"],
+                    input=reply
+                )
+
+                # Correct handling for bytes
+                if hasattr(tts, "read"):
+                    audio_bytes = tts.read()
+                elif hasattr(tts, "getbuffer"):
+                    audio_bytes = tts.getbuffer()
+                else:
+                    audio_bytes = tts  # fallback
+
+                st.audio(BytesIO(audio_bytes), format="audio/mp3")
+
+            except Exception as e:
+                st.error(f"TTS failed for {role}: {e}")
+
         except Exception as e:
-            st.error(f"TTS failed: {e}")
+            st.error(f"GPT reply failed for {role}: {e}")
