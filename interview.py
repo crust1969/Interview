@@ -15,7 +15,7 @@ tts_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 # =======================
 avatars = {
     "Finance Director": {
-        "voice_id": "pNInz6obpgDQGcFmaJgB",
+        "voice_id": "pFZP5JQG7iQjIQuC4Bku",
         "image": "Finance.png"  # stored in main directory
     },
     "HR Director": {
