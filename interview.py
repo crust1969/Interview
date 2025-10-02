@@ -1,11 +1,10 @@
 import streamlit as st
 from openai import OpenAI
-from elevenlabs import generate, set_api_key, Voice
+from elevenlabs import ElevenLabs, VoiceSettings
 from io import BytesIO
 
-# Set up API keys
-openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-set_api_key(st.secrets["ELEVENLABS_API_KEY"])
+# Initialize ElevenLabs client
+elevenlabs_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
 # Define avatars with image + unique ElevenLabs voice
 avatars = {
@@ -45,10 +44,17 @@ if st.button("Start Discussion") and topic:
                 st.write(reply)
 
             # Convert GPT reply to speech using ElevenLabs
-            audio = generate(
+            audio = elevenlabs_client.text_to_speech.convert(
                 text=reply,
-                voice=Voice.from_api_id(info["voice"]),
-                model="eleven_turbo_v2"
+                voice=info["voice"],
+                model="eleven_turbo_v2_5",  # Use the turbo model for low latency
+                voice_settings=VoiceSettings(
+                    stability=0.0,
+                    similarity_boost=1.0,
+                    style=0.0,
+                    use_speaker_boost=True,
+                    speed=1.0
+                )
             )
 
             st.audio(BytesIO(audio), format="audio/mp3")
