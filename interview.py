@@ -1,27 +1,19 @@
 import streamlit as st
 from openai import OpenAI
-from elevenlabs import ElevenLabs, Voice, VoiceSettings
+from elevenlabs import generate, play
 from io import BytesIO
 
-# -----------------------------
-# Initialize API clients
-# -----------------------------
+# Initialize OpenAI client
 openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-elevenlabs_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
-# -----------------------------
-# Define avatars
-# -----------------------------
+# Define avatars with image and voice
 avatars = {
-    "Finance Director": {"img": "Finance.png", "voice_id": "pNInz6obpgDQGcFmaJgB"},
-    "HR Director": {"img": "HR.png", "voice_id": "EXAVITQu4vr4xnSDxMaL"},
-    "IT Director": {"img": "IT.png", "voice_id": "nPczCjzI2devNBz1zQrb"},
-    "Marketing Director": {"img": "Marketing.png", "voice_id": "ODq5zmih8GrVes37Dizd"}
+    "Finance Director": {"img": "Finance.png", "voice": "pNInz6obpgDQGcFmaJgB"},
+    "HR Director": {"img": "HR.png", "voice": "EXAVITQu4vr4xnSDxMaL"},
+    "IT Director": {"img": "IT.png", "voice": "nPczCjzI2devNBz1zQrb"},
+    "Marketing Director": {"img": "Marketing.png", "voice": "ODq5zmih8GrVes37Dizd"}
 }
 
-# -----------------------------
-# Streamlit UI
-# -----------------------------
 st.title("💬 Avatar Discussion Demo (GPT + ElevenLabs TTS)")
 
 topic = st.text_input("Enter a discussion topic:")
@@ -32,9 +24,7 @@ if st.button("Start Discussion") and topic:
     # Loop through avatars
     for role, info in avatars.items():
         try:
-            # -----------------------------
             # Generate GPT reply
-            # -----------------------------
             response = openai_client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
@@ -44,9 +34,7 @@ if st.button("Start Discussion") and topic:
             )
             reply = response.choices[0].message.content
 
-            # -----------------------------
             # Display avatar + text
-            # -----------------------------
             cols = st.columns([1, 3])
             with cols[0]:
                 st.image(info["img"], width=120)
@@ -54,25 +42,11 @@ if st.button("Start Discussion") and topic:
                 st.subheader(role)
                 st.write(reply)
 
-            # -----------------------------
-            # Retrieve ElevenLabs voice by ID
-            # -----------------------------
-            voice = Voice.retrieve(info["voice_id"], client=elevenlabs_client)
-
-            # -----------------------------
-            # Convert GPT reply to TTS
-            # -----------------------------
-            audio = elevenlabs_client.text_to_speech.convert(
+            # Convert GPT reply to speech using ElevenLabs
+            audio = generate(
                 text=reply,
-                voice=voice,
-                model="eleven_turbo_v2_5",
-                voice_settings=VoiceSettings(
-                    stability=0.0,
-                    similarity_boost=1.0,
-                    style=0.0,
-                    use_speaker_boost=True,
-                    speed=1.0
-                )
+                voice=info["voice"],
+                model="eleven_turbo_v2_5"
             )
 
             st.audio(BytesIO(audio), format="audio/mp3")
