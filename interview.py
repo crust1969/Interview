@@ -1,31 +1,28 @@
 import streamlit as st
 from openai import OpenAI
-from elevenlabs import ElevenLabs
 import io
 
-# Load API keys
+# Load API key
 openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-tts_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
-# Define avatars (with ElevenLabs voice IDs)
-# You can run tts_client.voices.get_all() to see your available voices & IDs
+# Define avatars with local image files
 avatars = {
-    "Finance Director": "pNInz6obpgDQGcFmaJgB",   # Example: Adam
-    "HR Director": "EXAVITQu4vr4xnSDxMaL",       # Example: Bella
-    "IT Director": "ErXwobaYiN019PkySvjV",       # Example: Elliot
-    "Marketing Director": "MF3mGyEYCl7XYWbV9V6O" # Example: Rachel
+    "Finance Director": "avatars/finance.png",
+    "HR Director": "avatars/hr.png",
+    "IT Director": "avatars/it.png",
+    "Marketing Director": "avatars/marketing.png"
 }
 
-st.title("💬 Avatar Discussion Demo")
+st.title("💬 Avatar Discussion Demo (Static Avatars)")
 
-# Input from moderator
+# Moderator input
 topic = st.text_input("Enter a discussion topic:")
 
 if st.button("Start Discussion") and topic:
     st.write(f"**Moderator:** Today’s topic is: {topic}")
 
-    # Generate a reply for each avatar
-    for role, voice_id in avatars.items():
+    for role, img_path in avatars.items():
+        # Generate GPT reply
         response = openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -35,18 +32,23 @@ if st.button("Start Discussion") and topic:
         )
 
         reply = response.choices[0].message.content
-        st.subheader(role)
-        st.write(reply)
 
-        # Convert text to speech with ElevenLabs
-        audio_stream = tts_client.text_to_speech.convert(
-            voice_id=voice_id,
-            model_id="eleven_multilingual_v2",
-            text=reply
-        )
+        # Display avatar + text side by side
+        cols = st.columns([1, 3])
+        with cols[0]:
+            st.image(img_path, width=120)
+        with cols[1]:
+            st.subheader(role)
+            st.write(reply)
 
-        # Collect audio chunks into a single mp3
-        audio_bytes = b"".join([chunk for chunk in audio_stream if chunk])
-
-        # Play inside Streamlit
-        st.audio(io.BytesIO(audio_bytes), format="audio/mp3")
+        # Generate TTS with OpenAI
+        try:
+            tts = openai_client.audio.speech.create(
+                model="gpt-4o-mini-tts",
+                voice="alloy",  # change to desired voice
+                input=reply
+            )
+            audio_bytes = tts.read()  # get mp3 bytes
+            st.audio(io.BytesIO(audio_bytes), format="audio/mp3")
+        except Exception as e:
+            st.error(f"TTS failed: {e}")
