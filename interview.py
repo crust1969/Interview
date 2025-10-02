@@ -1,11 +1,13 @@
 import streamlit as st
-from elevenlabs import ElevenLabs, VoiceSettings
+from openai import OpenAI
+from elevenlabs import generate, set_api_key, Voice
 from io import BytesIO
 
-# Initialize ElevenLabs client
-elevenlabs_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
+# Set up API keys
+openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+set_api_key(st.secrets["ELEVENLABS_API_KEY"])
 
-# Define avatars with image + unique voice
+# Define avatars with image + unique ElevenLabs voice
 avatars = {
     "Finance Director": {"img": "Finance.png", "voice": "pNInz6obpgDQGcFmaJgB"},
     "HR Director": {"img": "HR.png", "voice": "EXAVITQu4vr4xnSDxMaL"},
@@ -13,7 +15,7 @@ avatars = {
     "Marketing Director": {"img": "Marketing.png", "voice": "ODq5zmih8GrVes37Dizd"}
 }
 
-st.title("💬 Avatar Discussion Demo (Static Avatars + Different Voices)")
+st.title("💬 Avatar Discussion Demo (GPT + ElevenLabs TTS)")
 
 # Moderator input
 topic = st.text_input("Enter a discussion topic:")
@@ -24,10 +26,17 @@ if st.button("Start Discussion") and topic:
     # Loop through avatars for a single-turn discussion
     for role, info in avatars.items():
         try:
-            # Generate GPT reply (replace with your GPT integration)
-            reply = f"Here's a humorous take from {role} on {topic}."
+            # Generate GPT reply
+            response = openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": f"You are {role}. Respond in a humorous but realistic way."},
+                    {"role": "user", "content": f"Discuss the topic: {topic}"}
+                ]
+            )
+            reply = response.choices[0].message.content
 
-            # Display avatar + text side by side
+            # Display avatar + text
             cols = st.columns([1, 3])
             with cols[0]:
                 st.image(info["img"], width=120)
@@ -35,22 +44,14 @@ if st.button("Start Discussion") and topic:
                 st.subheader(role)
                 st.write(reply)
 
-            # Convert GPT reply to TTS with unique voice
-            audio = elevenlabs_client.generate(
+            # Convert GPT reply to speech using ElevenLabs
+            audio = generate(
                 text=reply,
-                voice=info["voice"],
-                model="eleven_turbo_v2_5",  # Use the turbo model for low latency
-                voice_settings=VoiceSettings(
-                    stability=0.0,
-                    similarity_boost=1.0,
-                    style=0.0,
-                    use_speaker_boost=True,
-                    speed=1.0
-                )
+                voice=Voice.from_api_id(info["voice"]),
+                model="eleven_turbo_v2"
             )
 
-            # Play the generated audio
             st.audio(BytesIO(audio), format="audio/mp3")
 
         except Exception as e:
-            st.error(f"Failed to generate speech for {role}: {e}")
+            st.error(f"Error for {role}: {e}")
