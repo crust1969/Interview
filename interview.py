@@ -1,6 +1,5 @@
 import streamlit as st
 from openai import OpenAI
-import io
 from PIL import Image
 from pathlib import Path
 
@@ -19,7 +18,7 @@ avatars = {
     "Marketing Director": {"voice": "shimmer", "image": "Marketing.png"}
 }
 
-st.title("💬 Avatar Discussion Demo (Streamlit Cloud)")
+st.title("💬 Avatar Discussion Demo (Cloud-ready Audio)")
 
 # -------------------------------
 # Moderator Input
@@ -30,9 +29,7 @@ if st.button("Start Discussion") and topic:
     st.write(f"**Moderator:** Today’s topic is: {topic}")
 
     for role, data in avatars.items():
-        # ---------------------------
-        # GPT-Response (kurz & knackig)
-        # ---------------------------
+        # GPT-Response
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -42,9 +39,7 @@ if st.button("Start Discussion") and topic:
         )
         reply = response.choices[0].message.content
 
-        # ---------------------------
         # Layout: Avatar + Text
-        # ---------------------------
         col1, col2 = st.columns([1, 4])
         with col1:
             try:
@@ -56,7 +51,7 @@ if st.button("Start Discussion") and topic:
             st.write(reply)
 
         # ---------------------------
-        # TTS: BytesIO + MP3 speichern
+        # TTS: MP3 speichern & abspielen
         # ---------------------------
         try:
             audio_response = client.audio.speech.create(
@@ -65,19 +60,13 @@ if st.button("Start Discussion") and topic:
                 input=reply
             )
 
-            # In BytesIO schreiben
-            audio_bytes = io.BytesIO(audio_response.read())
-            audio_bytes.seek(0)
-
-            # Optional: als MP3 im Repo speichern (persistent in Streamlit Cloud)
             mp3_filename = f"{role.replace(' ', '_')}_reply.mp3"
+            # MP3 schreiben
             with open(mp3_filename, "wb") as f:
-                f.write(audio_bytes.getbuffer())
-            # Pointer wieder auf 0
-            audio_bytes.seek(0)
+                f.write(audio_response.read())
 
-            # Abspielen
-            st.audio(audio_bytes, format="audio/mp3")
+            # Abspielen über Dateipfad (funktioniert zuverlässig in Streamlit Cloud)
+            st.audio(mp3_filename, format="audio/mp3")
 
         except Exception as e:
             st.error(f"Audio generation failed for {role}: {e}")
