@@ -3,10 +3,10 @@ from openai import OpenAI
 import io
 from PIL import Image
 
-# OpenAI Client initialisieren
+# 🔑 OpenAI Client initialisieren
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# Rollen mit Avatar + Voice definieren
+# 🎭 Rollen mit Avatar + Voice definieren (nur gültige Stimmen!)
 avatars = {
     "Finance Director": {"voice": "fable", "image": "Finance.png"},
     "HR Director": {"voice": "sage", "image": "HR.png"},
@@ -16,14 +16,14 @@ avatars = {
 
 st.title("💬 Avatar Discussion Demo")
 
-# Eingabe Thema
+# Eingabe-Thema
 topic = st.text_input("Enter a discussion topic:")
 
 if st.button("Start Discussion") and topic:
     st.write(f"**Moderator:** Today’s topic is: {topic}")
 
     for role, data in avatars.items():
-        # GPT-Response kurz & knackig
+        # 💡 GPT-Response generieren
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -33,7 +33,7 @@ if st.button("Start Discussion") and topic:
         )
         reply = response.choices[0].message.content
 
-        # Layout: Bild links, Text rechts
+        # 🎨 Layout: Avatar + Text
         col1, col2 = st.columns([1, 4])
         with col1:
             try:
@@ -44,12 +44,19 @@ if st.button("Start Discussion") and topic:
             st.subheader(role)
             st.write(reply)
 
-        # TTS mit OpenAI (BytesIO verhindert StorageError)
-        audio_response = client.audio.speech.create(
-            model="gpt-4o-mini-tts",
-            voice=data["voice"],
-            input=reply
-        )
+        # 🔊 Text-to-Speech mit BytesIO (robust)
+        try:
+            audio_response = client.audio.speech.create(
+                model="gpt-4o-mini-tts",
+                voice=data["voice"],
+                input=reply
+            )
 
-        audio_bytes = io.BytesIO(audio_response.read())
-        st.audio(audio_bytes, format="audio/mp3")
+            audio_bytes = io.BytesIO(audio_response.read())
+            audio_bytes.seek(0)  # WICHTIG!
+
+            st.audio(audio_bytes, format="audio/mp3")
+
+        except Exception as e:
+            st.error(f"Audio generation failed for {role}: {e}")
+
