@@ -1,64 +1,42 @@
 import streamlit as st
-import openai
-import requests
+from openai import OpenAI
+from elevenlabs import ElevenLabs, play
 
-# 👉 Setze deine Keys hier ein
-OPENAI_API_KEY = "DEIN_OPENAI_KEY"
-ELEVEN_API_KEY = "DEIN_ELEVENLABS_KEY"
+# Load API keys
+openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+tts_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
-openai.api_key = OPENAI_API_KEY
-
-# Rollen-Definitionen
-roles = {
-    "Thomas (IT-Leiter)": "Technisch, nüchtern, redet über Schnittstellen und Sicherheit. Nerdig, manchmal zu detailliert.",
-    "Sabine (HR-Leiterin)": "Empathisch, spricht über Mitarbeitende, Motivation und Weiterbildung. Blumig.",
-    "Herr Krüger (Finanzchef)": "Kurz angebunden, fragt nach Kosten, ROI und Risiko. Trocken, streng, witzig.",
-    "Markus (Vertriebsleiter)": "Begeistert, denkt an Umsatz und Kunden. Übertreibt gerne, will alles sofort verkaufen.",
-    "Claudia (Marketing)": "Kreativ, voller Buzzwords, visionär. Oft wilde Ideen, manchmal abgehoben.",
-    "Herr Meier (Produktion)": "Bodenständig, skeptisch, denkt an praktische Umsetzbarkeit."
+# Define avatars
+avatars = {
+    "Finance Director": "Adam",
+    "HR Director": "Rachel",
+    "IT Director": "Elliot",
+    "Marketing Director": "Bella"
 }
 
-# Stimmen (IDs aus ElevenLabs auswählen, z. B. 'Rachel', 'Adam' etc.)
-voices = {
-    "Thomas (IT-Leiter)": "voice_id_1",
-    "Sabine (HR-Leiterin)": "voice_id_2",
-    "Herr Krüger (Finanzchef)": "voice_id_3",
-    "Markus (Vertriebsleiter)": "voice_id_4",
-    "Claudia (Marketing)": "voice_id_5",
-    "Herr Meier (Produktion)": "voice_id_6"
-}
+st.title("💬 Avatar Discussion Demo")
 
-st.title("🎭 KI-Diskussionsrunde mit Avataren")
-topic = st.text_input("Diskussionsthema eingeben:", "Soll unsere Firma KI im Kundenservice einsetzen?")
+# Input from moderator
+topic = st.text_input("Enter a discussion topic:")
 
-if st.button("Diskussion starten"):
-    for role, style in roles.items():
-        # Generiere Avatar-Text mit GPT
-        prompt = f"Du bist {role}. {style}\nDiskussionsthema: {topic}\nAntwort:"
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",  # oder gpt-4o
-            messages=[{"role": "system", "content": "Du bist ein Avatar in einer Diskussionsrunde."},
-                      {"role": "user", "content": prompt}],
-            max_tokens=180
+if st.button("Start Discussion") and topic:
+    st.write(f"**Moderator:** Today’s topic is: {topic}")
+
+    # Generate a reply for each avatar
+    for role, voice in avatars.items():
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": f"You are {role}. Respond in a humorous but realistic way."},
+                {"role": "user", "content": f"Discuss the topic: {topic}"}
+            ]
         )
-        text = response["choices"][0]["message"]["content"]
-        
+
+        reply = response.choices[0].message.content
         st.subheader(role)
-        st.write(text)
+        st.write(reply)
 
-        # TTS mit ElevenLabs
-        voice_id = voices[role]
-        url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-        headers = {
-            "Accept": "audio/mpeg",
-            "Content-Type": "application/json",
-            "xi-api-key": ELEVEN_API_KEY
-        }
-        data = {"text": text, "voice_settings": {"stability": 0.6, "similarity_boost": 0.8}}
-        audio = requests.post(url, headers=headers, json=data)
+        # Convert text to speech using ElevenLabs
+        audio = tts_client.generate(text=reply, voice=voice, model="eleven_multilingual_v2")
 
-        # Abspielen
-        audio_file = f"{role}.mp3"
-        with open(audio_file, "wb") as f:
-            f.write(audio.content)
-        st.audio(audio_file, format="audio/mp3")
+        st.audio(audio, format="audio/mp3")
